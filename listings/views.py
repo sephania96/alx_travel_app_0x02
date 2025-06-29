@@ -54,3 +54,20 @@ def initiate_payment(request):
         )
         return JsonResponse(data['data'])
     return JsonResponse({'error': 'Failed to initiate payment'}, status=400)
+
+def verify_payment(request, tx_ref):
+    chapa_url = f"https://api.chapa.co/v1/transaction/verify/{tx_ref}"
+    headers = {
+        'Authorization': f'Bearer {settings.CHAPA_SECRET_KEY}',
+    }
+
+    response = requests.get(chapa_url, headers=headers)
+    data = response.json()
+
+    if data.get('status') == 'success':
+        payment = Payment.objects.get(transaction_id=tx_ref)
+        payment.status = 'Completed'
+        payment.save()
+        return JsonResponse({'message': 'Payment verified successfully'})
+    
+    return JsonResponse({'error': 'Payment not verified'}, status=400)
